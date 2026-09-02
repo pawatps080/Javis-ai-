@@ -1,0 +1,6 @@
+{
+  "name": "JARVIS",
+  "description": "Iron Man holographic HUD AI assistant powered by Gemini with interactive voice, arc reactor visualizer, and telemetry diagnostics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
