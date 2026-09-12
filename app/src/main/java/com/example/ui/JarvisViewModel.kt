@@ -18,6 +18,8 @@ import com.example.data.SecurityDefenseMode
 import com.example.data.SmartHomeState
 import com.example.data.StarkWeatherLocation
 import com.example.util.DeviceManager
+import com.example.util.HudSoundManager
+import com.example.util.HudSoundType
 import com.example.util.SpeechManager
 import com.example.util.TtsManager
 import kotlinx.coroutines.delay
@@ -43,6 +45,7 @@ class JarvisViewModel(application: Application) : AndroidViewModel(application) 
     private val ttsManager = TtsManager(application)
     private val speechManager = SpeechManager(application)
     private val deviceManager = DeviceManager(application)
+    private val hudSoundManager = HudSoundManager(application)
 
     val isSpeaking: StateFlow<Boolean> = ttsManager.isSpeaking
     val isMuted: StateFlow<Boolean> = ttsManager.isMuted
@@ -121,10 +124,18 @@ class JarvisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setTab(index: Int) {
+        if (_currentTab.value != index) {
+            hudSoundManager.playTabSwitch(index)
+        }
         _currentTab.value = index
     }
 
+    fun playHudSound(type: HudSoundType) {
+        hudSoundManager.playSound(type)
+    }
+
     fun setPersona(newPersona: JarvisPersona) {
+        hudSoundManager.playSound(HudSoundType.TACTICAL_PING)
         _persona.value = newPersona
         val confirmation = "Protocol adjusted, sir. Personality matrix updated to ${newPersona.title}."
         _messages.value = _messages.value + ChatMessage(
@@ -137,6 +148,7 @@ class JarvisViewModel(application: Application) : AndroidViewModel(application) 
 
     fun toggleMute() {
         ttsManager.toggleMute()
+        hudSoundManager.setSoundEnabled(!ttsManager.isMuted.value)
     }
 
     fun toggleVoiceListening() {
@@ -190,6 +202,7 @@ class JarvisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun runDiagnosticCycle() {
+        hudSoundManager.playSound(HudSoundType.DIAGNOSTICS_MODE)
         viewModelScope.launch {
             _isThinking.value = true
             val initialNotice = ChatMessage(
@@ -220,6 +233,7 @@ class JarvisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun triggerProtocol(protocolName: String) {
+        hudSoundManager.playSound(HudSoundType.PROTOCOLS_MODE)
         val prompt = when (protocolName) {
             "HOUSE_PARTY" -> "Initiate House Party Protocol."
             "CLEAN_SLATE" -> "Prepare Clean Slate Protocol."
@@ -232,20 +246,24 @@ class JarvisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setScannedImage(bitmap: Bitmap?) {
+        hudSoundManager.playSound(HudSoundType.SCANNER_MODE)
         _scannedImage.value = bitmap
     }
 
     fun clearHistory() {
+        hudSoundManager.playSound(HudSoundType.ALERT_CHIME)
         ttsManager.stop()
         initJarvisWelcome()
     }
 
     // MARKETS & CRYPTO ACTIONS
     fun setMarketCategory(category: MarketCategory) {
+        hudSoundManager.playSound(HudSoundType.MARKETS_MODE)
         _selectedMarketCategory.value = category
     }
 
     fun refreshMarketData() {
+        hudSoundManager.playSound(HudSoundType.MARKETS_MODE)
         viewModelScope.launch {
             _isMarketsRefreshing.value = true
             delay(600)
@@ -267,6 +285,7 @@ class JarvisViewModel(application: Application) : AndroidViewModel(application) 
     // WEATHER ACTIONS
     fun selectWeatherLocation(index: Int) {
         if (index in _weatherLocations.value.indices) {
+            hudSoundManager.playSound(HudSoundType.WEATHER_MODE)
             _selectedWeatherLocationIndex.value = index
             val loc = _weatherLocations.value[index]
             ttsManager.speak("Atmospheric telemetry synchronized with ${loc.name}, sir.")
@@ -376,6 +395,7 @@ class JarvisViewModel(application: Application) : AndroidViewModel(application) 
     override fun onCleared() {
         super.onCleared()
         ttsManager.shutdown()
+        hudSoundManager.shutdown()
         speechManager.stopListening()
         deviceManager.shutdown()
     }
